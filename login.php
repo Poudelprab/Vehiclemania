@@ -1,49 +1,124 @@
+<?php
+session_start();
+include('config.php'); // Ensure this file contains your database connection details
+
+$error_message = '';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Retrieve form data and validate presence
+    $email = $_POST['email'] ?? null;
+    $password = $_POST['password'] ?? null;
+
+    if (!$email || !$password) {
+        $error_message = 'Please enter both email and password.';
+    } else {
+        $query = "SELECT clientid, name, username, email, password FROM signup WHERE email = ?";
+        $stmt = $con->prepare($query);
+
+        if ($stmt) {
+            // Bind parameters
+            $stmt->bind_param("s", $email);
+
+            // Execute query
+            $stmt->execute();
+
+            // Store result
+            $stmt->store_result();
+
+            if ($stmt->num_rows == 1) {
+                // Bind result variables
+                $stmt->bind_result($clientid, $name, $username, $email, $hashedPassword);
+                $stmt->fetch();
+
+                // Verify password
+                if (password_verify($password, $hashedPassword)) {
+                    // Store session variables
+                    $_SESSION['clientid'] = $clientid;
+                    $_SESSION['name'] = $name;
+                    $_SESSION['username'] = $username;
+                    $_SESSION['email'] = $email;
+
+                    // Redirect to user.php
+                    header("Location: user.php");
+                    exit();
+                } else {
+                    $error_message = 'Invalid password.';
+                }
+            } else {
+                $error_message = 'No user found with the given email.';
+            }
+
+            // Close statement
+            $stmt->close();
+        } else {
+            $error_message = 'Failed to prepare the SQL statement: ' . $con->error;
+        }
+    }
+
+    // Close connection
+    $con->close();
+}
+?>
 
 
 
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script
-      src="https://kit.fontawesome.com/64d58efce2.js"
-      crossorigin="anonymous"
-    ></script>
-    <link rel="stylesheet" href="login.css" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://kit.fontawesome.com/64d58efce2.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="login.css">
     <title>Sign in & Sign up Form</title>
-  </head>
-  <body>
+    <style>
+        .error-box {
+            border: 1px solid red;
+            background-color: #f2dede;
+            color: #a94442;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
     <div class="container">
-      <div class="forms-container">
-        <div class="signin-signup">
-          <form method = "POST" action = "#" class="sign-in-form">
-            <h2 class="title">Sign in</h2>
-            <div class="input-field">
-              <i class="fas fa-envelope"></i>
-              <input type="email" name = "email" placeholder="Email" />
-            </div>
-            <div class="input-field">
-              <i class="fas fa-lock"></i>
-              <input type="password" name = "Password" placeholder="Password" />
-            </div>
-            <input type="submit" value="Login" class="btn solid" />
-            <p class="social-text">Or Sign in with social platforms</p>
-            <div class="social-media">
-              <a href="#" class="social-icon">
-                <i class="fab fa-facebook-f"></i>
-              </a>
-              <a href="#" class="social-icon">
-                <i class="fab fa-twitter"></i>
-              </a>
-              <a href="#" class="social-icon">
-                <i class="fab fa-google"></i>
-              </a>
-              <a href="#" class="social-icon">
-                <i class="fab fa-linkedin-in"></i>
-              </a>
-            </div>
-          </form>
+        <div class="forms-container">
+            <div class="signin-signup">
+                <form method="POST" action="login.php" class="sign-in-form">
+                    <h2 class="title">Sign in</h2>
+
+                    <?php if (!empty($error_message)): ?>
+                        <div class="error-box"><?php echo $error_message; ?></div>
+                    <?php endif; ?>
+
+                    <div class="input-field">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" name="email" placeholder="Email" required />
+                    </div>
+                    <div class="input-field">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password" placeholder="Password" required />
+                    </div>
+                    <input type="submit" value="Login" class="btn solid" />
+                    <p class="social-text">Or Sign in with social platforms</p>
+                    <div class="social-media">
+                        <a href="#" class="social-icon">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="social-icon">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-icon">
+                            <i class="fab fa-google"></i>
+                        </a>
+                        <a href="#" class="social-icon">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
+                </form>
+
+          
 
           <form name="signUpForm" action="#" onsubmit="return validateForm()" method="post" class="sign-up-form">
         <h2 class="title">Sign up</h2>
@@ -155,6 +230,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $con->close();
 }
 ?>
+
+
+
 
 <script>
         function validateForm() {
