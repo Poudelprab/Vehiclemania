@@ -44,41 +44,42 @@
               </a>
             </div>
           </form>
-          <form action="#" class="sign-up-form">
-            <h2 class="title">Sign up</h2>
-            <div class="input-field">
-              <i class="fas fa-user"></i>
-              <input type="text" name="username" placeholder="Full Name" />
-            </div>
-            <div class="input-field">
-              <i class="fas fa-envelope"></i>
-              <input type="email" name="email" placeholder="Email" />
-            </div>
-            <div class="input-field">
-              <i class="fas fa-lock"></i>
-              <input type="password" name="password" placeholder="Password" />
-            </div>
-            <div class="input-field">
-              <i class="fas fa-lock"></i>
-              <input type="password" name="password" placeholder="Confirm password" />
-            </div>
-            <input type="submit" class="btn" name="buttonn" value="Sign up" />
-            <p class="social-text">Or Sign up with social platforms</p>
-            <div class="social-media">
-              <a href="#" class="social-icon">
+
+          <form name="signUpForm" action="#" onsubmit="return validateForm()" method="post" class="sign-up-form">
+        <h2 class="title">Sign up</h2>
+        <div class="input-field">
+            <i class="fas fa-user"></i>
+            <input type="text" id="username" name="username" placeholder="Full Name" />
+        </div>
+        <div class="input-field">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="email" name="email" placeholder="Email" />
+        </div>
+        <div class="input-field">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" name="password" placeholder="Password" />
+        </div>
+        <div class="input-field">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" />
+        </div>
+        <input type="submit" class="btn" name="buttonn" value="Sign up" />
+        <p class="social-text">Or Sign up with social platforms</p>
+        <div class="social-media">
+            <a href="#" class="social-icon">
                 <i class="fab fa-facebook-f"></i>
-              </a>
-              <a href="#" class="social-icon">
+            </a>
+            <a href="#" class="social-icon">
                 <i class="fab fa-twitter"></i>
-              </a>
-              <a href="#" class="social-icon">
+            </a>
+            <a href="#" class="social-icon">
                 <i class="fab fa-google"></i>
-              </a>
-              <a href="#" class="social-icon">
+            </a>
+            <a href="#" class="social-icon">
                 <i class="fab fa-linkedin-in"></i>
-              </a>
-            </div>
-          </form>
+            </a>
+        </div>
+    </form>
         </div>
       </div>
 
@@ -111,51 +112,86 @@
     </div>
     
     <?php
-       include('config.php');
-       if(isset($_POST['buttonn']))
-       {
-        $username= $_POST['username'];
-        $email= $_POST['email'];
-        $phone= $_POST['phone'];
-       // $password=$_POST['password'];
-        //$encpassword=md5($password);
-        $hassedpassword=password_hash($password,PASSWORD_DEFAULT);
-        $query="insert into signup(username,email,password)values('$username','$email','$password')";
-        $result=mysqli_query($con,$query);
-        if($result)
-        {
-          echo'record have been entered sucessfully';
+include('config.php');
 
-        }
-        else{
-          echo'There was an error';
-        }
-       }
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Retrieve and validate input
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    $confirmPassword = $_POST['confirmPassword'];
 
-       ?>
-    <script>
-  function validateForm() {
-    var username = document.getElementById("username").value;
-    var password = document.getElementById("password").value;
-    var usernameRegex = /^[a-zA-Z]+$/;
-    var passwordRegex = /^[A-Z][a-zA-Z0-9]*$/;
-    
-    // Validate username
-    if (!username.match(usernameRegex)) {
-      alert("Username should contain only letters.");
-      return false;
-    }
-    
-    // Validate password
-    if (!password.match(passwordRegex)) {
-      alert("Password should start with a capital letter and can contain letters and digits only.");
-      return false;
+    // Check if passwords match
+    if ($password !== $confirmPassword) {
+        echo 'Passwords do not match.';
+        exit;
     }
 
-    return true;
-  }
-</script>
+    // Encrypt password
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
+    // Prepare SQL query
+    $query = "INSERT INTO signup (username, email, password) VALUES (?, ?, ?)";
+    $stmt = $con->prepare($query);
+
+    if ($stmt) {
+        // Bind parameters
+        $stmt->bind_param("sss", $username, $email, $hashedPassword);
+
+        // Execute query and check result
+        if ($stmt->execute()) {
+            echo 'Record has been entered successfully';
+        } else {
+            echo 'There was an error: ' . $stmt->error;
+        }
+
+        // Close statement
+        $stmt->close();
+    } else {
+        echo 'Failed to prepare the SQL statement';
+    }
+
+    // Close connection
+    $con->close();
+}
+?>
+
+<script>
+        function validateForm() {
+            var username = document.getElementById("username").value;
+            var email = document.getElementById("email").value;
+            var password = document.getElementById("password").value;
+            var confirmPassword = document.getElementById("confirmPassword").value;
+
+            var usernameRegex = /^[a-zA-Z\s]+$/;
+            var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            var passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,}$/;
+
+            if (!username.match(usernameRegex)) {
+                alert("Username should contain only letters.");
+                return false;
+            }
+
+            if (!email.match(emailRegex)) {
+                alert("Please enter a valid email address.");
+                return false;
+            }
+
+            if (!password.match(passwordRegex)) {
+                alert("Password should contain at least one capital letter, one symbol, one number, and be at least 8 characters long.");
+                return false;
+            }
+
+            if (password !== confirmPassword) {
+                alert("Passwords do not match.");
+                return false;
+            }
+
+            return true;
+        }
+    </script>
+
+  
     <script src="loginapp.js"></script>
   </body>
 </html>
