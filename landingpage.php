@@ -30,7 +30,7 @@
       <li><a href="#">Contact us</a></li>
     </ul>
     <div class="nav__btns">
-      <button class="rbtn"><a href="renterlogin.html">Are you a renter?</a></button>
+      <button class="rbtn"><a href="renterlogin.php">Are you a renter?</a></button>
       <button class="btn"><a href="login.php">Log in</a></button>
     </div>
   </nav>

@@ -1,4 +1,64 @@
+<?php
+session_start();
+include('config.php'); // Ensure this file contains your database connection details
 
+$error_message = '';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Retrieve form data and validate presence
+    $mail = $_POST['mail'] ?? null;
+    $pass = $_POST['pass'] ?? null;
+
+    if (!$mail || !$pass) {
+        $error_message = 'Please enter both email and password.';
+    } else {
+        $query = "SELECT renterid, fullname, username, mail, pass FROM rentersignup WHERE mail = ?";
+        $stmt = $con->prepare($query);
+
+        if ($stmt) {
+            // Bind parameters
+            $stmt->bind_param("s", $mail);
+
+            // Execute query
+            $stmt->execute();
+
+            // Store result
+            $stmt->store_result();
+
+            if ($stmt->num_rows == 1) {
+                // Bind result variables
+                $stmt->bind_result($renterid, $fullname, $username, $mail, $hashedPass);
+                $stmt->fetch();
+
+                // Verify password
+                if (password_verify($pass, $hashedPass)) {
+                    // Store session variables
+                    $_SESSION['renterid'] = $renterid;
+                    $_SESSION['fullname'] = $fullname;
+                    $_SESSION['username'] = $username;
+                    $_SESSION['mail'] = $mail;
+
+                    // Redirect to renterpage.php
+                    header("Location: renterpage.php");
+                    exit();
+                } else {
+                    $error_message = 'Invalid password.';
+                }
+            } else {
+                $error_message = 'No user found with the given email.';
+            }
+
+            // Close statement
+            $stmt->close();
+        } else {
+            $error_message = 'Failed to prepare the SQL statement: ' . $con->error;
+        }
+    }
+
+    // Close connection
+    $con->close();
+}
+?>
 
 
 <!DOCTYPE html>
@@ -11,7 +71,16 @@
       crossorigin="anonymous"
     ></script>
     <link rel="stylesheet" href="renterstyle.css" />
-
+    <style>
+        .error-box {
+            border: 1px solid red;
+            background-color: #f2dede;
+            color: #a94442;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+    </style>
     <style>
       .hidden {
           display: none;
@@ -26,39 +95,42 @@
     <div class="container">
       <div class="forms-container">
         <div class="signin-signup">
-          <form method = "POST" action = "#" class="sign-in-form">
-            <h2 class="title">Sign in</h2>
-            <div class="input-field">
-              <i class="fas fa-user"></i>
-              <input type="text" name = "Username" placeholder="Username" />
-            </div>
-            <div class="input-field">
-              <i class="fas fa-lock"></i>
-              <input type="password" name = "Password" placeholder="Password" />
-            </div>
-            <input type="submit" value="Login" class="btn solid" />
-            <p class="social-text">Or Sign in with social platforms</p>
-            <div class="social-media">
-              <a href="#" class="social-icon">
+        <form method="POST" action="#" class="sign-in-form">
+        <h2 class="title">Sign in</h2>
+        <?php if ($error_message): ?>
+            <p class="error-message"><?php echo $error_message; ?></p>
+        <?php endif; ?>
+        <div class="input-field">
+            <i class="fas fa-user"></i>
+            <input type="text" name="mail" placeholder="Email" required />
+        </div>
+        <div class="input-field">
+            <i class="fas fa-lock"></i>
+            <input type="password" name="pass" placeholder="Password" required />
+        </div>
+        <input type="submit" value="Login" class="btn solid" />
+        <p class="social-text">Or Sign in with social platforms</p>
+        <div class="social-media">
+            <a href="#" class="social-icon">
                 <i class="fab fa-facebook-f"></i>
-              </a>
-              <a href="#" class="social-icon">
+            </a>
+            <a href="#" class="social-icon">
                 <i class="fab fa-twitter"></i>
-              </a>
-              <a href="#" class="social-icon">
+            </a>
+            <a href="#" class="social-icon">
                 <i class="fab fa-google"></i>
-              </a>
-              <a href="#" class="social-icon">
+            </a>
+            <a href="#" class="social-icon">
                 <i class="fab fa-linkedin-in"></i>
-              </a>
-            </div>
-          </form>
+            </a>
+        </div>
+    </form>
          
           <form name="signUpForm" action="#" onsubmit="return Formvalidate()" method="post" class="sign-up-form">
             <h2 class="title">Sign up</h2>
             <div class="input-field">
                 <i class="fas fa-user"></i>
-                <input type="text" id="fullname" name="fullname" placeholder="Full Name" />
+                <input type="text" id="username" name="username" placeholder="user Name" />
             </div>
             <div class="input-field">
                 <i class="fas fa-envelope"></i>
@@ -122,7 +194,7 @@
     
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Retrieve and validate input
-        $fullname = $_POST['fullname'];
+        $username = $_POST['username'];
         $mail = $_POST['mail'];
         $pass = $_POST['pass'];
         $confirmPassword = $_POST['confirmPassword'];
@@ -137,12 +209,12 @@
         $hashedPass = password_hash($pass, PASSWORD_DEFAULT);
     
         // Prepare SQL query
-        $query = "INSERT INTO rentersignup (fullname, mail, pass) VALUES (?, ?, ?)";
+        $query = "INSERT INTO rentersignup (username, mail, pass) VALUES (?, ?, ?)";
         $stmt = $con->prepare($query);
     
         if ($stmt) {
             // Bind parameters
-            $stmt->bind_param("sss", $fullname, $mail, $hashedPass);
+            $stmt->bind_param("sss", $username, $mail, $hashedPass);
     
             // Execute query and check result
             if ($stmt->execute()) {
@@ -164,16 +236,16 @@
 
     <script>
       function validateForm() {
-          var fullname = document.getElementById("fullname").value;
+          var username = document.getElementById("username").value;
           var mail = document.getElementById("mail").value;
           var pass = document.getElementById("pass").value;
           var confirmPassword = document.getElementById("confirmPassword").value;
 
-          var fullnameRegex = /^[a-zA-Z\s]+$/;
+          var usernameRegex = /^[a-zA-Z\s]+$/;
           var mailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           var pass = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,}$/;
 
-          if (!fullname.match(fullnameRegex)) {
+          if (!username.match(usernameRegex)) {
               alert("Username should contain only letters.");
               return false;
           }
