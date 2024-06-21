@@ -270,6 +270,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </script>
 
   
-    <script src="loginapp.js"></script>
+    <script src="loginapp.jss"></script>
   </body>
 </html>
