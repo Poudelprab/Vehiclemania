@@ -31,5 +31,5 @@ document.getElementById('prev-2').addEventListener('click', function() {
 });
 
 document.getElementById('upload-btn').addEventListener('click', function() {
-  document.getElementById('file-upload').click();
+  document.getElementById('file-upload').click();;
 });
